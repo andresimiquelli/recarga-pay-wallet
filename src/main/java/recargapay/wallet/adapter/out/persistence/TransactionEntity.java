@@ -2,10 +2,7 @@ package recargapay.wallet.adapter.out.persistence;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +14,6 @@ import recargapay.wallet.domain.EntryType;
 @Table(name = "transactions")
 public class TransactionEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "wallet_id", nullable = false, updatable = false)
@@ -38,22 +34,17 @@ public class TransactionEntity {
     @Column(name = "description", nullable = false, updatable = false, length = 255)
     private String description;
 
-    @Column(name = "amount", nullable = false, updatable = false)
+    @Column(name = "amount", nullable = false, updatable = false, precision = 19, scale = 4)
     private BigDecimal amount;
 
     @Column(name = "idempotency_key", nullable = false, unique = true, updatable = false)
     private String idempotencyKey;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP")
+    private Instant createdAt = Instant.now();
 
-    @Column(name = "left_balance", nullable = false, updatable = true)
+    @Column(name = "left_balance", nullable = false, updatable = true, precision = 19, scale = 4)
     private BigDecimal leftBalance;
-
-    @PrePersist
-    public void setCreatedAt() {
-        this.createdAt = Instant.now();
-    }
 
     public UUID getId() {
         return id;

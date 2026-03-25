@@ -1,6 +1,7 @@
 package recargapay.wallet.adapter.out.persistence;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,12 @@ public class TransactionPersistenceAdapter implements TransactionRepositoryPort 
         TransactionEntity transactionEntity = toEntity(transaction);
         TransactionEntity savedTransactionEntity = jpaTransactionRepository.save(transactionEntity);
         return toDomain(savedTransactionEntity);
+    }
+
+    @Override
+    public List<Transaction> saveAll(List<Transaction> transactions) {
+        List<TransactionEntity> transactionEntities = transactions.stream().map(this::toEntity).toList();
+        return jpaTransactionRepository.saveAll(transactionEntities).stream().map(this::toDomain).toList();
     }
 
     @Override

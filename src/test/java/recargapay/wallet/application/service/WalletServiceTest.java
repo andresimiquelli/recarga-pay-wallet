@@ -1,6 +1,7 @@
 package recargapay.wallet.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -142,6 +144,7 @@ class WalletServiceTest {
         assertEquals(savedTransaction.getId(), transaction.getId());
         assertEquals(new BigDecimal("15.00"), transaction.getLeftBalance());
         assertEquals(new BigDecimal("15.00"), wallet.getCurrentBalance());
+        assertNotNull(transactionCaptor.getValue().getId());
         assertEquals(new BigDecimal("15.00"), transactionCaptor.getValue().getLeftBalance());
         assertEquals(EntryType.CREDIT, transaction.getEntryType());
         assertEquals(Category.DEPOSIT, transaction.getCategory());
@@ -177,12 +180,14 @@ class WalletServiceTest {
         assertEquals(savedTransaction.getId(), transaction.getId());
         assertEquals(new BigDecimal("6.00"), transaction.getLeftBalance());
         assertEquals(new BigDecimal("6.00"), wallet.getCurrentBalance());
+        assertNotNull(transactionCaptor.getValue().getId());
         assertEquals(new BigDecimal("6.00"), transactionCaptor.getValue().getLeftBalance());
         assertEquals(EntryType.DEBIT, transaction.getEntryType());
         assertEquals(Category.WITHDRAWAL, transaction.getCategory());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void shouldTransferBetweenWalletsLockingInAscendingOrder() {
         UUID originWalletId = UUID.fromString("00000000-0000-0000-0000-000000000002");
         UUID destinationWalletId = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -202,7 +207,7 @@ class WalletServiceTest {
         when(walletRepositoryPort.findByIdForUpdate(originWalletId)).thenReturn(Optional.of(originWallet));
         when(walletRepositoryPort.save(originWallet)).thenReturn(originWallet);
         when(walletRepositoryPort.save(destinationWallet)).thenReturn(destinationWallet);
-        when(transactionRepositoryPort.save(org.mockito.ArgumentMatchers.any(Transaction.class)))
+        when(transactionRepositoryPort.saveAll(org.mockito.ArgumentMatchers.anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         Transaction originTransaction = walletService.transfer(
@@ -211,9 +216,9 @@ class WalletServiceTest {
                 new BigDecimal("4.00"),
                 "tr-1");
 
-        ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepositoryPort, org.mockito.Mockito.times(2)).save(transactionCaptor.capture());
-        var savedTransactions = transactionCaptor.getAllValues();
+        ArgumentCaptor<List<Transaction>> transactionCaptor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepositoryPort).saveAll(transactionCaptor.capture());
+        var savedTransactions = transactionCaptor.getValue();
         Transaction destinationTransaction = savedTransactions.get(0);
         Transaction savedOriginTransaction = savedTransactions.get(1);
 
@@ -237,6 +242,8 @@ class WalletServiceTest {
         assertEquals(originWalletId, destinationTransaction.getCounterpartyWalletId());
         assertEquals("transfer from origin@example.com", destinationTransaction.getDescription());
 
+        assertNotNull(savedOriginTransaction.getId());
+        assertNotNull(destinationTransaction.getId());
         assertEquals(destinationTransaction.getId(), savedOriginTransaction.getRelatedTransactionId());
         assertEquals(savedOriginTransaction.getId(), destinationTransaction.getRelatedTransactionId());
     }
@@ -286,6 +293,7 @@ class WalletServiceTest {
         assertEquals(existingTransaction.getId(), transaction.getId());
         verify(walletRepositoryPort, never()).findByIdForUpdate(walletId);
         verify(transactionRepositoryPort, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(transactionRepositoryPort, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 
     @Test
@@ -304,6 +312,7 @@ class WalletServiceTest {
         assertEquals(existingTransaction.getId(), transaction.getId());
         verify(walletRepositoryPort, never()).findByIdForUpdate(walletId);
         verify(transactionRepositoryPort, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(transactionRepositoryPort, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 
     @Test
@@ -326,6 +335,7 @@ class WalletServiceTest {
         assertEquals(existingTransaction.getId(), transaction.getId());
         verify(walletRepositoryPort, never()).findByIdForUpdate(walletId);
         verify(transactionRepositoryPort, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(transactionRepositoryPort, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
     }
 
     @Test

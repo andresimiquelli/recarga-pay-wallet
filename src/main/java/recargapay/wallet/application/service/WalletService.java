@@ -2,6 +2,7 @@ package recargapay.wallet.application.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -209,8 +210,9 @@ public class WalletService {
         destinationTransaction.setLeftBalance(updatedDestinationBalance);
 
         try {
-            transactionRepositoryPort.save(destinationTransaction);
-            return transactionRepositoryPort.save(originTransaction);
+            List<Transaction> savedTransactions =
+                    transactionRepositoryPort.saveAll(List.of(destinationTransaction, originTransaction));
+            return savedTransactions.get(1);
         } catch (DataIntegrityViolationException exception) {
             return transactionRepositoryPort
                     .findByIdempotencyKey(normalizedIdempotencyKey)
@@ -249,6 +251,7 @@ public class WalletService {
         walletRepositoryPort.save(wallet);
 
         Transaction transaction = new Transaction();
+        transaction.setId(UUID.randomUUID());
         transaction.setWalletId(walletId);
         transaction.setEntryType(entryType);
         transaction.setCategory(category);
@@ -330,3 +333,7 @@ public class WalletService {
         return normalizedAlias;
     }
 }
+
+
+
+
