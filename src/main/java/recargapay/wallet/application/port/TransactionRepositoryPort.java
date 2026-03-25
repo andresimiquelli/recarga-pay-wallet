@@ -1,5 +1,6 @@
 package recargapay.wallet.application.port;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import recargapay.wallet.domain.Transaction;
@@ -10,4 +11,6 @@ public interface TransactionRepositoryPort {
     Optional<Transaction> findByIdempotencyKey(String idempotencyKey);
 
     Optional<Transaction> findLatestByWalletId(UUID walletId);
+
+    Optional<Transaction> findLatestByWalletIdAt(UUID walletId, Instant targetAt);
 }

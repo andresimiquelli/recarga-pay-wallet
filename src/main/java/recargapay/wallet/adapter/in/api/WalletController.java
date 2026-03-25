@@ -3,8 +3,10 @@ package recargapay.wallet.adapter.in.api;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import recargapay.wallet.adapter.in.api.request.CreateWalletRequest;
@@ -52,8 +55,11 @@ public class WalletController {
     }
 
     @GetMapping("/{id}/balance")
-    public WalletBalanceResponse getCurrentBalance(@PathVariable UUID id) {
-        return new WalletBalanceResponse(id, walletService.getCurrentBalance(id));
+    public WalletBalanceResponse getBalance(
+            @PathVariable UUID id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant balanceAt) {
+        Instant targetAt = balanceAt == null ? Instant.now() : balanceAt;
+        return new WalletBalanceResponse(id, walletService.getBalanceAt(id, targetAt), targetAt);
     }
 
     @PostMapping("/{id}/deposits")

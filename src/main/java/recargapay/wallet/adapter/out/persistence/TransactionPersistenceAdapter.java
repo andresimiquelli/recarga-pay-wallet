@@ -1,5 +1,6 @@
 package recargapay.wallet.adapter.out.persistence;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,13 @@ public class TransactionPersistenceAdapter implements TransactionRepositoryPort 
     public Optional<Transaction> findLatestByWalletId(UUID walletId) {
         return jpaTransactionRepository
                 .findTopByWalletIdOrderByCreatedAtDescIdDesc(walletId)
+                .map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Transaction> findLatestByWalletIdAt(UUID walletId, Instant targetAt) {
+        return jpaTransactionRepository
+                .findTopByWalletIdAndCreatedAtLessThanEqualOrderByCreatedAtDescIdDesc(walletId, targetAt)
                 .map(this::toDomain);
     }
 

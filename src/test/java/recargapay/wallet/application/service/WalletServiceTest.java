@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,43 @@ class WalletServiceTest {
         BigDecimal currentBalance = walletService.getCurrentBalance(walletId);
 
         assertEquals(BigDecimal.ZERO, currentBalance);
+    }
+
+    @Test
+    void shouldReturnHistoricalBalanceFromLatestTransactionBeforeTargetDate() {
+        UUID walletId = UUID.randomUUID();
+        Instant targetAt = Instant.parse("2026-03-25T12:00:00Z");
+
+        Wallet wallet = new Wallet();
+        wallet.setId(walletId);
+
+        Transaction transaction = new Transaction();
+        transaction.setWalletId(walletId);
+        transaction.setLeftBalance(new BigDecimal("73.40"));
+        transaction.setCreatedAt(Instant.parse("2026-03-25T11:59:59Z"));
+
+        when(walletRepositoryPort.findById(walletId)).thenReturn(Optional.of(wallet));
+        when(transactionRepositoryPort.findLatestByWalletIdAt(walletId, targetAt)).thenReturn(Optional.of(transaction));
+
+        BigDecimal balanceAt = walletService.getBalanceAt(walletId, targetAt);
+
+        assertEquals(new BigDecimal("73.40"), balanceAt);
+    }
+
+    @Test
+    void shouldReturnZeroWhenNoTransactionExistsBeforeTargetDate() {
+        UUID walletId = UUID.randomUUID();
+        Instant targetAt = Instant.parse("2026-03-25T12:00:00Z");
+
+        Wallet wallet = new Wallet();
+        wallet.setId(walletId);
+
+        when(walletRepositoryPort.findById(walletId)).thenReturn(Optional.of(wallet));
+        when(transactionRepositoryPort.findLatestByWalletIdAt(walletId, targetAt)).thenReturn(Optional.empty());
+
+        BigDecimal balanceAt = walletService.getBalanceAt(walletId, targetAt);
+
+        assertEquals(BigDecimal.ZERO, balanceAt);
     }
 
     @Test

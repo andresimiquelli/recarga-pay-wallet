@@ -1,6 +1,7 @@
 package recargapay.wallet.application.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -101,6 +102,14 @@ public class WalletService {
     public BigDecimal getCurrentBalance(UUID walletId) {
         BigDecimal currentBalance = getById(walletId).getCurrentBalance();
         return currentBalance == null ? BigDecimal.ZERO : currentBalance;
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getBalanceAt(UUID walletId, Instant targetAt) {
+        getById(walletId);
+        return transactionRepositoryPort.findLatestByWalletIdAt(walletId, targetAt)
+                .map(Transaction::getLeftBalance)
+                .orElse(BigDecimal.ZERO);
     }
 
     @Transactional
