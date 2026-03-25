@@ -10,7 +10,5 @@ public interface TransactionRepositoryPort {
 
     Optional<Transaction> findByIdempotencyKey(String idempotencyKey);
 
-    Optional<Transaction> findLatestByWalletId(UUID walletId);
-
     Optional<Transaction> findLatestByWalletIdAt(UUID walletId, Instant targetAt);
 }

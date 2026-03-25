@@ -52,7 +52,6 @@ class WalletServiceTest {
         BigDecimal currentBalance = walletService.getCurrentBalance(walletId);
 
         assertEquals(new BigDecimal("125.50"), currentBalance);
-        verify(transactionRepositoryPort, never()).findLatestByWalletId(walletId);
     }
 
     @Test

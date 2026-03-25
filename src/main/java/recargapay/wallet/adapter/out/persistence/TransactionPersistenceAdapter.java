@@ -28,13 +28,6 @@ public class TransactionPersistenceAdapter implements TransactionRepositoryPort 
     }
 
     @Override
-    public Optional<Transaction> findLatestByWalletId(UUID walletId) {
-        return jpaTransactionRepository
-                .findTopByWalletIdOrderByCreatedAtDescIdDesc(walletId)
-                .map(this::toDomain);
-    }
-
-    @Override
     public Optional<Transaction> findLatestByWalletIdAt(UUID walletId, Instant targetAt) {
         return jpaTransactionRepository
                 .findTopByWalletIdAndCreatedAtLessThanEqualOrderByCreatedAtDescIdDesc(walletId, targetAt)
