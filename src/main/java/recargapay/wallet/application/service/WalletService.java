@@ -29,8 +29,8 @@ public class WalletService {
             Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final String DEPOSIT_DESCRIPTION = "Deposit into wallet";
     private static final String WITHDRAW_DESCRIPTION = "Withdraw from wallet";
-    private static final String TRANSFER_OUT_DESCRIPTION_TEMPLATE = "tranfer to %s";
-    private static final String TRANSFER_IN_DESCRIPTION_TEMPLATE = "transfer from %s";
+    private static final String TRANSFER_OUT_DESCRIPTION_TEMPLATE = "Transfer to %s";
+    private static final String TRANSFER_IN_DESCRIPTION_TEMPLATE = "Transfer from %s";
     private static final String TRANSFER_COUNTERPART_IDEMPOTENCY_SUFFIX = ":counterparty";
 
     private final TransactionRepositoryPort transactionRepositoryPort;
