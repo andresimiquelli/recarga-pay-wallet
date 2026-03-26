@@ -2,6 +2,7 @@ package recargapay.wallet.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -116,7 +117,7 @@ class WalletServiceConcurrencyTest extends PostgresIntegrationTest {
         List<TransactionEntity> transferTransactions = jpaTransactionRepository.findAll().stream()
                 .filter(transaction -> transaction.getCategory() == Category.TRANSFER_IN
                         || transaction.getCategory() == Category.TRANSFER_OUT)
-                .collect(Collectors.toList());
+                .toList();
 
         assertEquals(new BigDecimal("50.00"), updatedOriginWallet.getCurrentBalance());
         assertEquals(new BigDecimal("50.00"), updatedDestinationWallet.getCurrentBalance());
@@ -133,7 +134,7 @@ class WalletServiceConcurrencyTest extends PostgresIntegrationTest {
 
             assertNotNull(relatedTransaction);
             assertEquals(transaction.getId(), relatedTransaction.getRelatedTransactionId());
-            assertTrue(transaction.getCategory() != relatedTransaction.getCategory());
+            assertNotSame(transaction.getCategory(), relatedTransaction.getCategory());
         }
     }
 
@@ -156,7 +157,7 @@ class WalletServiceConcurrencyTest extends PostgresIntegrationTest {
         List<TransactionEntity> transferTransactions = jpaTransactionRepository.findAll().stream()
                 .filter(transaction -> transaction.getCategory() == Category.TRANSFER_IN
                         || transaction.getCategory() == Category.TRANSFER_OUT)
-                .collect(Collectors.toList());
+                .toList();
 
         assertEquals(2, transactions.size());
         assertEquals(new BigDecimal("80.00"), updatedWalletA.getCurrentBalance());
@@ -189,13 +190,10 @@ class WalletServiceConcurrencyTest extends PostgresIntegrationTest {
             List<Future<T>> futures = new ArrayList<>();
             for (int index = 0; index < taskCount; index++) {
                 final int taskIndex = index;
-                futures.add(executorService.submit(new Callable<>() {
-                    @Override
-                    public T call() throws Exception {
-                        readyLatch.countDown();
-                        assertTrue(startLatch.await(10, TimeUnit.SECONDS));
-                        return task.execute(taskIndex);
-                    }
+                futures.add(executorService.submit(() -> {
+                    readyLatch.countDown();
+                    assertTrue(startLatch.await(10, TimeUnit.SECONDS));
+                    return task.execute(taskIndex);
                 }));
             }
 
