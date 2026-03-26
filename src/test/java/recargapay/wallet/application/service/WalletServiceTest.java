@@ -235,12 +235,12 @@ class WalletServiceTest {
         assertEquals(EntryType.DEBIT, savedOriginTransaction.getEntryType());
         assertEquals(Category.TRANSFER_OUT, savedOriginTransaction.getCategory());
         assertEquals(destinationWalletId, savedOriginTransaction.getCounterpartyWalletId());
-        assertEquals("tranfer to dest@example.com", savedOriginTransaction.getDescription());
+        assertEquals("Transfer to dest@example.com", savedOriginTransaction.getDescription());
 
         assertEquals(EntryType.CREDIT, destinationTransaction.getEntryType());
         assertEquals(Category.TRANSFER_IN, destinationTransaction.getCategory());
         assertEquals(originWalletId, destinationTransaction.getCounterpartyWalletId());
-        assertEquals("transfer from origin@example.com", destinationTransaction.getDescription());
+        assertEquals("Transfer from origin@example.com", destinationTransaction.getDescription());
 
         assertNotNull(savedOriginTransaction.getId());
         assertNotNull(destinationTransaction.getId());
