@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import recargapay.wallet.application.exception.InsufficientWalletBalanceException;
@@ -31,7 +30,6 @@ public class WalletService {
     private static final String WITHDRAW_DESCRIPTION = "Withdraw from wallet";
     private static final String TRANSFER_OUT_DESCRIPTION_TEMPLATE = "Transfer to %s";
     private static final String TRANSFER_IN_DESCRIPTION_TEMPLATE = "Transfer from %s";
-    private static final String TRANSFER_COUNTERPART_IDEMPOTENCY_SUFFIX = ":counterparty";
 
     private final TransactionRepositoryPort transactionRepositoryPort;
     private final WalletRepositoryPort walletRepositoryPort;
@@ -114,39 +112,19 @@ public class WalletService {
     }
 
     @Transactional
-    public Transaction deposit(UUID walletId, BigDecimal amount, String idempotencyKey) {
-        return processBalanceChange(
-                walletId,
-                amount,
-                idempotencyKey,
-                EntryType.CREDIT,
-                Category.DEPOSIT,
-                DEPOSIT_DESCRIPTION);
+    public Transaction deposit(UUID walletId, BigDecimal amount) {
+        return processBalanceChange(walletId, amount, EntryType.CREDIT, Category.DEPOSIT, DEPOSIT_DESCRIPTION);
     }
 
     @Transactional
-    public Transaction withdraw(UUID walletId, BigDecimal amount, String idempotencyKey) {
-        return processBalanceChange(
-                walletId,
-                amount,
-                idempotencyKey,
-                EntryType.DEBIT,
-                Category.WITHDRAWAL,
-                WITHDRAW_DESCRIPTION);
+    public Transaction withdraw(UUID walletId, BigDecimal amount) {
+        return processBalanceChange(walletId, amount, EntryType.DEBIT, Category.WITHDRAWAL, WITHDRAW_DESCRIPTION);
     }
 
     @Transactional
-    public Transaction transfer(UUID originWalletId, UUID destinationWalletId, BigDecimal amount, String idempotencyKey) {
+    public Transaction transfer(UUID originWalletId, UUID destinationWalletId, BigDecimal amount) {
         validateAmount(amount);
         validateTransferWallets(originWalletId, destinationWalletId);
-
-        String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
-        Transaction existingTransaction = transactionRepositoryPort
-                .findByIdempotencyKey(normalizedIdempotencyKey)
-                .orElse(null);
-        if (existingTransaction != null) {
-            return existingTransaction;
-        }
 
         UUID firstWalletId = originWalletId.compareTo(destinationWalletId) <= 0 ? originWalletId : destinationWalletId;
         UUID secondWalletId = originWalletId.compareTo(destinationWalletId) <= 0 ? destinationWalletId : originWalletId;
@@ -161,11 +139,6 @@ public class WalletService {
         }
         if (originWalletId.equals(secondWalletId)) {
             originWallet = secondLockedWallet;
-        }
-
-        existingTransaction = transactionRepositoryPort.findByIdempotencyKey(normalizedIdempotencyKey).orElse(null);
-        if (existingTransaction != null) {
-            return existingTransaction;
         }
 
         BigDecimal originCurrentBalance = getSafeBalance(originWallet);
@@ -194,7 +167,6 @@ public class WalletService {
         originTransaction.setRelatedTransactionId(destinationTransactionId);
         originTransaction.setDescription(String.format(TRANSFER_OUT_DESCRIPTION_TEMPLATE, destinationWallet.getAlias()));
         originTransaction.setAmount(amount);
-        originTransaction.setIdempotencyKey(normalizedIdempotencyKey);
         originTransaction.setLeftBalance(updatedOriginBalance);
 
         Transaction destinationTransaction = new Transaction();
@@ -206,43 +178,22 @@ public class WalletService {
         destinationTransaction.setRelatedTransactionId(originTransactionId);
         destinationTransaction.setDescription(String.format(TRANSFER_IN_DESCRIPTION_TEMPLATE, originWallet.getAlias()));
         destinationTransaction.setAmount(amount);
-        destinationTransaction.setIdempotencyKey(normalizedIdempotencyKey + TRANSFER_COUNTERPART_IDEMPOTENCY_SUFFIX);
         destinationTransaction.setLeftBalance(updatedDestinationBalance);
 
-        try {
-            List<Transaction> savedTransactions =
-                    transactionRepositoryPort.saveAll(List.of(destinationTransaction, originTransaction));
-            return savedTransactions.get(1);
-        } catch (DataIntegrityViolationException exception) {
-            return transactionRepositoryPort
-                    .findByIdempotencyKey(normalizedIdempotencyKey)
-                    .orElseThrow(() -> exception);
-        }
+        List<Transaction> savedTransactions =
+                transactionRepositoryPort.saveAll(List.of(destinationTransaction, originTransaction));
+        return savedTransactions.get(1);
     }
 
     private Transaction processBalanceChange(
             UUID walletId,
             BigDecimal amount,
-            String idempotencyKey,
             EntryType entryType,
             Category category,
             String description) {
         validateAmount(amount);
-        String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
-
-        Transaction existingTransaction = transactionRepositoryPort
-                .findByIdempotencyKey(normalizedIdempotencyKey)
-                .orElse(null);
-        if (existingTransaction != null) {
-            return existingTransaction;
-        }
 
         Wallet wallet = lockWallet(walletId);
-
-        existingTransaction = transactionRepositoryPort.findByIdempotencyKey(normalizedIdempotencyKey).orElse(null);
-        if (existingTransaction != null) {
-            return existingTransaction;
-        }
 
         BigDecimal currentBalance = getSafeBalance(wallet);
         BigDecimal updatedBalance = calculateUpdatedBalance(walletId, amount, entryType, currentBalance);
@@ -257,16 +208,9 @@ public class WalletService {
         transaction.setCategory(category);
         transaction.setDescription(description);
         transaction.setAmount(amount);
-        transaction.setIdempotencyKey(normalizedIdempotencyKey);
         transaction.setLeftBalance(updatedBalance);
 
-        try {
-            return transactionRepositoryPort.save(transaction);
-        } catch (DataIntegrityViolationException exception) {
-            return transactionRepositoryPort
-                    .findByIdempotencyKey(normalizedIdempotencyKey)
-                    .orElseThrow(() -> exception);
-        }
+        return transactionRepositoryPort.save(transaction);
     }
 
     private Wallet lockWallet(UUID walletId) {
@@ -308,10 +252,6 @@ public class WalletService {
         }
     }
 
-    private String normalizeIdempotencyKey(String idempotencyKey) {
-        return idempotencyKey == null ? "" : idempotencyKey.trim();
-    }
-
     private String normalizeAlias(String alias) {
         if (alias == null) {
             throw new InvalidWalletAliasException("alias is required");
@@ -333,7 +273,3 @@ public class WalletService {
         return normalizedAlias;
     }
 }
-
-
-
-

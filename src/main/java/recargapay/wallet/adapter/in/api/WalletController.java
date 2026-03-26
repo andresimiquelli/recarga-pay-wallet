@@ -64,7 +64,7 @@ public class WalletController {
 
     @PostMapping("/{id}/deposits")
     public DepositResponse deposit(@PathVariable UUID id, @Valid @RequestBody DepositRequest request) {
-        Transaction transaction = walletService.deposit(id, request.amount(), request.idempotencyKey());
+        Transaction transaction = walletService.deposit(id, request.amount());
         return new DepositResponse(
                 transaction.getWalletId(),
                 transaction.getId(),
@@ -74,7 +74,7 @@ public class WalletController {
 
     @PostMapping("/{id}/withdrawals")
     public WithdrawResponse withdraw(@PathVariable UUID id, @Valid @RequestBody WithdrawRequest request) {
-        Transaction transaction = walletService.withdraw(id, request.amount(), request.idempotencyKey());
+        Transaction transaction = walletService.withdraw(id, request.amount());
         return new WithdrawResponse(
                 transaction.getWalletId(),
                 transaction.getId(),
@@ -87,8 +87,7 @@ public class WalletController {
         Transaction transaction = walletService.transfer(
                 id,
                 request.destinationWalletId(),
-                request.amount(),
-                request.idempotencyKey());
+                request.amount());
         return new TransferResponse(
                 transaction.getId(),
                 transaction.getWalletId(),

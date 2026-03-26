@@ -13,7 +13,6 @@ public class Transaction {
     private UUID relatedTransactionId;
     private String description;
     private BigDecimal amount;
-    private String idempotencyKey;
     private Instant createdAt;
     private BigDecimal leftBalance;
 
@@ -79,14 +78,6 @@ public class Transaction {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
-    }
-
-    public String getIdempotencyKey() {
-        return idempotencyKey;
-    }
-
-    public void setIdempotencyKey(String idempotencyKey) {
-        this.idempotencyKey = idempotencyKey;
     }
 
     public Instant getCreatedAt() {

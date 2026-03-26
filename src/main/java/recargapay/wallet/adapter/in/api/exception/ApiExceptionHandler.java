@@ -9,10 +9,13 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import recargapay.wallet.application.exception.IdempotencyKeyConflictException;
+import recargapay.wallet.application.exception.IdempotencyRequestInProgressException;
 import recargapay.wallet.application.exception.InsufficientWalletBalanceException;
 import recargapay.wallet.application.exception.InvalidTransferOperationException;
 import recargapay.wallet.application.exception.InvalidWalletAliasException;
 import recargapay.wallet.application.exception.InvalidTransactionAmountException;
+import recargapay.wallet.application.exception.MissingIdempotencyKeyException;
 import recargapay.wallet.application.exception.WalletAliasAlreadyInUseException;
 import recargapay.wallet.application.exception.WalletAlreadyExistsForUserException;
 import recargapay.wallet.application.exception.WalletNotFoundException;
@@ -29,7 +32,8 @@ public class ApiExceptionHandler {
             InvalidWalletAliasException.class,
             InvalidTransactionAmountException.class,
             MethodArgumentNotValidException.class,
-            ConstraintViolationException.class
+            ConstraintViolationException.class,
+            MissingIdempotencyKeyException.class
     })
     public ResponseEntity<ApiErrorResponse> handleBadRequest(Exception exception) {
         if (exception instanceof MethodArgumentNotValidException methodArgumentNotValidException) {
@@ -52,7 +56,9 @@ public class ApiExceptionHandler {
     @ExceptionHandler({
             InsufficientWalletBalanceException.class,
             WalletAlreadyExistsForUserException.class,
-            WalletAliasAlreadyInUseException.class
+            WalletAliasAlreadyInUseException.class,
+            IdempotencyKeyConflictException.class,
+            IdempotencyRequestInProgressException.class
     })
     public ResponseEntity<ApiErrorResponse> handleConflict(RuntimeException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage(), List.of());

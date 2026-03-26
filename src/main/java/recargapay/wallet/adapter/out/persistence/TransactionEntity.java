@@ -37,9 +37,6 @@ public class TransactionEntity {
     @Column(name = "amount", nullable = false, updatable = false, precision = 19, scale = 4)
     private BigDecimal amount;
 
-    @Column(name = "idempotency_key", nullable = false, unique = true, updatable = false)
-    private String idempotencyKey;
-
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP")
     private Instant createdAt = Instant.now();
 
@@ -108,14 +105,6 @@ public class TransactionEntity {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
-    }
-
-    public String getIdempotencyKey() {
-        return idempotencyKey;
-    }
-
-    public void setIdempotencyKey(String idempotencyKey) {
-        this.idempotencyKey = idempotencyKey;
     }
 
     public Instant getCreatedAt() {

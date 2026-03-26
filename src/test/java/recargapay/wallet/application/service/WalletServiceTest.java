@@ -130,13 +130,12 @@ class WalletServiceTest {
         savedTransaction.setCategory(Category.DEPOSIT);
         savedTransaction.setDescription("Deposit into wallet");
 
-        when(transactionRepositoryPort.findByIdempotencyKey("dep-1")).thenReturn(Optional.empty());
         when(walletRepositoryPort.findByIdForUpdate(walletId)).thenReturn(Optional.of(wallet));
         when(walletRepositoryPort.save(wallet)).thenReturn(wallet);
         when(transactionRepositoryPort.save(org.mockito.ArgumentMatchers.any(Transaction.class)))
                 .thenReturn(savedTransaction);
 
-        Transaction transaction = walletService.deposit(walletId, new BigDecimal("5.00"), "dep-1");
+        Transaction transaction = walletService.deposit(walletId, new BigDecimal("5.00"));
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepositoryPort).save(transactionCaptor.capture());
@@ -166,13 +165,12 @@ class WalletServiceTest {
         savedTransaction.setCategory(Category.WITHDRAWAL);
         savedTransaction.setDescription("Withdraw from wallet");
 
-        when(transactionRepositoryPort.findByIdempotencyKey("wd-1")).thenReturn(Optional.empty());
         when(walletRepositoryPort.findByIdForUpdate(walletId)).thenReturn(Optional.of(wallet));
         when(walletRepositoryPort.save(wallet)).thenReturn(wallet);
         when(transactionRepositoryPort.save(org.mockito.ArgumentMatchers.any(Transaction.class)))
                 .thenReturn(savedTransaction);
 
-        Transaction transaction = walletService.withdraw(walletId, new BigDecimal("4.00"), "wd-1");
+        Transaction transaction = walletService.withdraw(walletId, new BigDecimal("4.00"));
 
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactionRepositoryPort).save(transactionCaptor.capture());
@@ -202,7 +200,6 @@ class WalletServiceTest {
         destinationWallet.setAlias("dest@example.com");
         destinationWallet.setCurrentBalance(new BigDecimal("3.00"));
 
-        when(transactionRepositoryPort.findByIdempotencyKey("tr-1")).thenReturn(Optional.empty());
         when(walletRepositoryPort.findByIdForUpdate(destinationWalletId)).thenReturn(Optional.of(destinationWallet));
         when(walletRepositoryPort.findByIdForUpdate(originWalletId)).thenReturn(Optional.of(originWallet));
         when(walletRepositoryPort.save(originWallet)).thenReturn(originWallet);
@@ -213,8 +210,7 @@ class WalletServiceTest {
         Transaction originTransaction = walletService.transfer(
                 originWalletId,
                 destinationWalletId,
-                new BigDecimal("4.00"),
-                "tr-1");
+                new BigDecimal("4.00"));
 
         ArgumentCaptor<List<Transaction>> transactionCaptor = ArgumentCaptor.forClass(List.class);
         verify(transactionRepositoryPort).saveAll(transactionCaptor.capture());
@@ -259,13 +255,12 @@ class WalletServiceTest {
         destinationWallet.setId(destinationWalletId);
         destinationWallet.setCurrentBalance(new BigDecimal("1.00"));
 
-        when(transactionRepositoryPort.findByIdempotencyKey("tr-2")).thenReturn(Optional.empty());
         when(walletRepositoryPort.findByIdForUpdate(originWalletId)).thenReturn(Optional.of(originWallet));
         when(walletRepositoryPort.findByIdForUpdate(destinationWalletId)).thenReturn(Optional.of(destinationWallet));
 
         assertThrows(
                 InsufficientWalletBalanceException.class,
-                () -> walletService.transfer(originWalletId, destinationWalletId, new BigDecimal("4.00"), "tr-2"));
+                () -> walletService.transfer(originWalletId, destinationWalletId, new BigDecimal("4.00")));
     }
 
     @Test
@@ -274,68 +269,7 @@ class WalletServiceTest {
 
         assertThrows(
                 InvalidTransferOperationException.class,
-                () -> walletService.transfer(walletId, walletId, new BigDecimal("1.00"), "tr-3"));
-    }
-
-    @Test
-    void shouldReturnExistingTransactionWhenDepositIdempotencyKeyWasAlreadyProcessed() {
-        UUID walletId = UUID.randomUUID();
-        Transaction existingTransaction = new Transaction();
-        existingTransaction.setId(UUID.randomUUID());
-        existingTransaction.setWalletId(walletId);
-        existingTransaction.setAmount(new BigDecimal("20.00"));
-        existingTransaction.setLeftBalance(new BigDecimal("20.00"));
-
-        when(transactionRepositoryPort.findByIdempotencyKey("dep-2")).thenReturn(Optional.of(existingTransaction));
-
-        Transaction transaction = walletService.deposit(walletId, new BigDecimal("20.00"), "dep-2");
-
-        assertEquals(existingTransaction.getId(), transaction.getId());
-        verify(walletRepositoryPort, never()).findByIdForUpdate(walletId);
-        verify(transactionRepositoryPort, never()).save(org.mockito.ArgumentMatchers.any());
-        verify(transactionRepositoryPort, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
-    }
-
-    @Test
-    void shouldReturnExistingTransactionWhenWithdrawIdempotencyKeyWasAlreadyProcessed() {
-        UUID walletId = UUID.randomUUID();
-        Transaction existingTransaction = new Transaction();
-        existingTransaction.setId(UUID.randomUUID());
-        existingTransaction.setWalletId(walletId);
-        existingTransaction.setAmount(new BigDecimal("2.00"));
-        existingTransaction.setLeftBalance(new BigDecimal("8.00"));
-
-        when(transactionRepositoryPort.findByIdempotencyKey("wd-3")).thenReturn(Optional.of(existingTransaction));
-
-        Transaction transaction = walletService.withdraw(walletId, new BigDecimal("2.00"), "wd-3");
-
-        assertEquals(existingTransaction.getId(), transaction.getId());
-        verify(walletRepositoryPort, never()).findByIdForUpdate(walletId);
-        verify(transactionRepositoryPort, never()).save(org.mockito.ArgumentMatchers.any());
-        verify(transactionRepositoryPort, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
-    }
-
-    @Test
-    void shouldReturnExistingTransactionWhenTransferIdempotencyKeyWasAlreadyProcessed() {
-        UUID walletId = UUID.randomUUID();
-        Transaction existingTransaction = new Transaction();
-        existingTransaction.setId(UUID.randomUUID());
-        existingTransaction.setWalletId(walletId);
-        existingTransaction.setAmount(new BigDecimal("2.00"));
-        existingTransaction.setLeftBalance(new BigDecimal("8.00"));
-
-        when(transactionRepositoryPort.findByIdempotencyKey("tr-4")).thenReturn(Optional.of(existingTransaction));
-
-        Transaction transaction = walletService.transfer(
-                walletId,
-                UUID.randomUUID(),
-                new BigDecimal("2.00"),
-                "tr-4");
-
-        assertEquals(existingTransaction.getId(), transaction.getId());
-        verify(walletRepositoryPort, never()).findByIdForUpdate(walletId);
-        verify(transactionRepositoryPort, never()).save(org.mockito.ArgumentMatchers.any());
-        verify(transactionRepositoryPort, never()).saveAll(org.mockito.ArgumentMatchers.anyList());
+                () -> walletService.transfer(walletId, walletId, new BigDecimal("1.00")));
     }
 
     @Test
@@ -344,10 +278,10 @@ class WalletServiceTest {
 
         assertThrows(
                 InvalidTransactionAmountException.class,
-                () -> walletService.deposit(walletId, BigDecimal.ZERO, "dep-3"));
+                () -> walletService.deposit(walletId, BigDecimal.ZERO));
         assertThrows(
                 InvalidTransactionAmountException.class,
-                () -> walletService.deposit(walletId, new BigDecimal("-1.00"), "dep-4"));
+                () -> walletService.deposit(walletId, new BigDecimal("-1.00")));
     }
 
     @Test
@@ -356,10 +290,10 @@ class WalletServiceTest {
 
         assertThrows(
                 InvalidTransactionAmountException.class,
-                () -> walletService.withdraw(walletId, BigDecimal.ZERO, "wd-4"));
+                () -> walletService.withdraw(walletId, BigDecimal.ZERO));
         assertThrows(
                 InvalidTransactionAmountException.class,
-                () -> walletService.withdraw(walletId, new BigDecimal("-1.00"), "wd-5"));
+                () -> walletService.withdraw(walletId, new BigDecimal("-1.00")));
     }
 
     @Test
@@ -369,9 +303,9 @@ class WalletServiceTest {
 
         assertThrows(
                 InvalidTransactionAmountException.class,
-                () -> walletService.transfer(originWalletId, destinationWalletId, BigDecimal.ZERO, "tr-5"));
+                () -> walletService.transfer(originWalletId, destinationWalletId, BigDecimal.ZERO));
         assertThrows(
                 InvalidTransactionAmountException.class,
-                () -> walletService.transfer(originWalletId, destinationWalletId, new BigDecimal("-1.00"), "tr-6"));
+                () -> walletService.transfer(originWalletId, destinationWalletId, new BigDecimal("-1.00")));
     }
 }

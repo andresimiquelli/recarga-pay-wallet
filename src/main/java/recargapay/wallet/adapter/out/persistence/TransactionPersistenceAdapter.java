@@ -30,11 +30,6 @@ public class TransactionPersistenceAdapter implements TransactionRepositoryPort 
     }
 
     @Override
-    public Optional<Transaction> findByIdempotencyKey(String idempotencyKey) {
-        return jpaTransactionRepository.findByIdempotencyKey(idempotencyKey).map(this::toDomain);
-    }
-
-    @Override
     public Optional<Transaction> findLatestByWalletIdAt(UUID walletId, Instant targetAt) {
         return jpaTransactionRepository
                 .findTopByWalletIdAndCreatedAtLessThanEqualOrderByCreatedAtDescIdDesc(walletId, targetAt)
@@ -51,7 +46,6 @@ public class TransactionPersistenceAdapter implements TransactionRepositoryPort 
         transactionEntity.setRelatedTransactionId(transaction.getRelatedTransactionId());
         transactionEntity.setDescription(transaction.getDescription());
         transactionEntity.setAmount(transaction.getAmount());
-        transactionEntity.setIdempotencyKey(transaction.getIdempotencyKey());
         transactionEntity.setLeftBalance(transaction.getLeftBalance());
         return transactionEntity;
     }
@@ -66,7 +60,6 @@ public class TransactionPersistenceAdapter implements TransactionRepositoryPort 
         transaction.setRelatedTransactionId(transactionEntity.getRelatedTransactionId());
         transaction.setDescription(transactionEntity.getDescription());
         transaction.setAmount(transactionEntity.getAmount());
-        transaction.setIdempotencyKey(transactionEntity.getIdempotencyKey());
         transaction.setCreatedAt(transactionEntity.getCreatedAt());
         transaction.setLeftBalance(transactionEntity.getLeftBalance());
         return transaction;
