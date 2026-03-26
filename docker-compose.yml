@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: wallet-db
+    container_name: wallet-db-joao-andre
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -16,7 +16,7 @@ services:
 
   app:
     build: .
-    container_name: wallet-api
+    container_name: wallet-api-joao-andre
     ports:
       - "${APP_PORT}:8080"
     environment:
